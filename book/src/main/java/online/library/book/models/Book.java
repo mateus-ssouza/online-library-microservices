@@ -8,6 +8,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 import lombok.NoArgsConstructor;
+import online.library.book.enums.Category;
 
 @Entity
 @Data
@@ -29,6 +30,10 @@ public class Book {
 
     @Column(nullable = false, length = 45)
     private String isbn;
+
+    @Column(nullable = false)
+    @Enumerated(EnumType.STRING)
+    private Category category;
 
     @OneToMany(mappedBy = "book", cascade = CascadeType.ALL, fetch = FetchType.LAZY, orphanRemoval = true)
     private List<Copy> copies = new ArrayList<>();
