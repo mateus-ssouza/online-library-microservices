@@ -18,7 +18,7 @@ public class Copy {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable = false, length = 45, unique = true)
+    @Column(name = "copycode", nullable = false, length = 45, unique = true)
     private String copyCode;
 
     @Column(nullable = false)

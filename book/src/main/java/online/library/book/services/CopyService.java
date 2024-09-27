@@ -8,11 +8,11 @@ import online.library.book.models.Copy;
 public interface CopyService {
     public List<Copy> getAll();
 
+    public List<Copy> getCopiesByBookId(Long bookId);
+
     public Optional<Copy> getById(Long id);
 
-    public Copy create(Copy copy);
-
-    public Copy update(Long id, Copy copy);
+    public Copy create(String bookTitle);
 
     public void delete(Long id);
 }

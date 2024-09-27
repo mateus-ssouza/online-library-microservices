@@ -18,7 +18,6 @@ public abstract class Strings {
         public static final String CONFLICT = "Copy's copy code already in use.";
         public static final String ERROR_FIND_BY_ID = "Error while trying to retrieve a copy by ID.";
         public static final String ERROR_CREATE = "Error while trying to create a copy.";
-        public static final String ERROR_UPDATE = "Error while trying to update a copy.";
         public static final String ERROR_DELETE = "Error while trying to delete a copy.";
     }
 }

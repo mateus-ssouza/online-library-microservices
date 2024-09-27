@@ -16,13 +16,14 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-
 import jakarta.validation.Valid;
 import online.library.book.dtos.CreateBookRequestDto;
 import online.library.book.dtos.UpdateBookRequestDto;
 import online.library.book.dtos.BookResponseDto;
+import online.library.book.dtos.CopyResponseDto;
 import online.library.book.models.Book;
 import online.library.book.services.BookService;
+import online.library.book.services.CopyService;
 import online.library.book.utils.MapperConverter;
 import online.library.book.utils.ValidationErrors;
 
@@ -33,12 +34,19 @@ public class BooksController {
     @Autowired
     private BookService _bookService;
 
+    @Autowired
+    private CopyService _copyService;
+
     @GetMapping
     public ResponseEntity<List<BookResponseDto>> getAllBooks() {
         try {
             var books = _bookService.getAll();
             var booksDto = books.stream()
-                    .map(book -> MapperConverter.convertToDto(book, BookResponseDto.class))
+                    .map(book -> {
+                        var bookResponseDto = MapperConverter.convertToDto(book, BookResponseDto.class);
+                        bookResponseDto.setTotalCopies(book.getCopies().size());
+                        return bookResponseDto;
+                    })
                     .collect(Collectors.toList());
 
             return ResponseEntity.ok(booksDto);
@@ -52,7 +60,11 @@ public class BooksController {
     public ResponseEntity<BookResponseDto> getBookById(@PathVariable Long id) {
         try {
             return _bookService.getById(id)
-                    .map(book -> ResponseEntity.ok(MapperConverter.convertToDto(book, BookResponseDto.class)))
+                    .map(book -> {
+                        var bookResponseDto = MapperConverter.convertToDto(book, BookResponseDto.class);
+                        bookResponseDto.setTotalCopies(book.getCopies().size());
+                        return ResponseEntity.ok(bookResponseDto);
+                    })
                     .orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
             throw e;
@@ -68,6 +80,7 @@ public class BooksController {
             var book = MapperConverter.convertToEntity(bookRequestDto, Book.class);
             var savedBook = _bookService.create(book);
             var bookResponseDto = MapperConverter.convertToDto(savedBook, BookResponseDto.class);
+            bookResponseDto.setTotalCopies(savedBook.getCopies().size());
 
             return new ResponseEntity<>(bookResponseDto, HttpStatus.CREATED);
         } catch (Exception e) {
@@ -84,6 +97,7 @@ public class BooksController {
             var book = MapperConverter.convertToEntity(bookRequestDto, Book.class);
             var updatedBook = _bookService.update(id, book);
             var bookResponseDto = MapperConverter.convertToDto(updatedBook, BookResponseDto.class);
+            bookResponseDto.setTotalCopies(updatedBook.getCopies().size());
 
             return ResponseEntity.ok(bookResponseDto);
         } catch (Exception e) {
@@ -96,6 +110,19 @@ public class BooksController {
         try {
             _bookService.delete(id);
             return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            throw e;
+        }
+    }
+
+    @GetMapping("/{id}/copies")
+    public ResponseEntity<List<CopyResponseDto>> getCopiesById(@PathVariable Long id) {
+        try {
+            var copies =  _copyService.getCopiesByBookId(id);
+            var copiesDto = copies.stream()
+                    .map(copy -> MapperConverter.convertToDto(copy,CopyResponseDto.class))
+                    .collect(Collectors.toList());
+            return ResponseEntity.ok(copiesDto);
         } catch (Exception e) {
             throw e;
         }

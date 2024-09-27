@@ -6,7 +6,7 @@ import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 import online.library.book.enums.Category;
-import online.library.book.utils.ValidCategory;
+import online.library.book.utils.ValueOfEnum;
 
 @Data
 @AllArgsConstructor
@@ -24,8 +24,6 @@ public class CreateBookRequestDto {
     @Size(min = 3, max = 45, message = "ISBN must be between 3 and 45 characters")
     String isbn;
 
-    @ValidCategory(message = "Invalid category. Available categories are: {categories}")
-    Category category;
-
-    Integer totalCopies;
+    @ValueOfEnum(fieldName = "category", enumClass = Category.class)
+    String category;
 }

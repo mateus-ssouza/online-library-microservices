@@ -6,12 +6,14 @@ import java.util.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import online.library.book.exceptions.ConflictException;
 import online.library.book.exceptions.NotFoundException;
 import online.library.book.exceptions.RepositoryException;
+import online.library.book.models.Book;
 import online.library.book.models.Copy;
+import online.library.book.repositories.BookRepository;
 import online.library.book.repositories.CopyRepository;
 import online.library.book.services.CopyService;
+import online.library.book.utils.CopyCodeGenerator;
 import online.library.book.utils.Strings;
 
 @Service
@@ -19,6 +21,9 @@ public class CopyServiceImpl implements CopyService {
 
     @Autowired
     private CopyRepository _copyRepository;
+
+    @Autowired
+    private BookRepository _bookRepository;
 
     @Override
     public List<Copy> getAll() {
@@ -47,50 +52,30 @@ public class CopyServiceImpl implements CopyService {
     }
 
     @Override
-    public Copy create(Copy copy) {
+    public Copy create(String bookTitle) {
         try {
-            Optional<Copy> checkCopyCode = _copyRepository.findByCopyCode(copy.getCopyCode());
-        
+            Optional<Book> checkBook = _bookRepository.findByTitle(bookTitle);
 
-            // Check if there is already a copy with the same copy code
-            if (checkCopyCode.isPresent())
-                throw new ConflictException(Strings.COPY.CONFLICT);
+            // Check if there is already a book with the same title
+            if (!checkBook.isPresent())
+                throw new NotFoundException(Strings.BOOK.NOT_FOUND);
+
+            var copy = new Copy();
+            copy.setBook(checkBook.get());
+            
+            Optional<Copy> checkCopy;
+
+            do {
+                var copyCode = CopyCodeGenerator.generateCopyCode();
+                copy.setCopyCode(copyCode);
+                checkCopy = _copyRepository.findByCopyCode(copy.getCopyCode());
+            } while (checkCopy.isPresent());
 
             return _copyRepository.save(copy);
-        } catch (ConflictException e) {
+        } catch (NotFoundException e) {
             throw e;
         } catch (Exception e) {
             throw new RepositoryException(Strings.COPY.ERROR_CREATE, e);
-        }
-    }
-
-    @Override
-    public Copy update(Long id, Copy copy) {
-        try {
-            Optional<Copy> copyModel = _copyRepository.findById(id);
-
-            // Check if a copy exists by id
-            if (!copyModel.isPresent())
-                throw new NotFoundException(Strings.COPY.NOT_FOUND);
-
-            Optional<Copy> checkCopyCode = _copyRepository.findByCopyCode(copy.getCopyCode());
-
-            // Check if there is already a copy with the same copy code
-            if (checkCopyCode.isPresent() && !checkCopyCode.get().getId().equals(copyModel.get().getId()))
-                throw new ConflictException(Strings.COPY.CONFLICT);
-
-            // Updating copy fields
-            Copy copyUpdated = copyModel.get();
-            copyUpdated.setCopyCode(copy.getCopyCode());
-            copyUpdated.setAvailable(copy.isAvailable());
-
-            return _copyRepository.save(copyUpdated);
-        } catch (NotFoundException e) {
-            throw e;
-        } catch (ConflictException e) {
-            throw e;
-        } catch (Exception e) {
-            throw new RepositoryException(Strings.COPY.ERROR_UPDATE, e);
         }
     }
 
@@ -107,6 +92,21 @@ public class CopyServiceImpl implements CopyService {
             throw e;
         } catch (Exception e) {
             throw new RepositoryException(Strings.COPY.ERROR_DELETE, e);
+        }
+    }
+
+    @Override
+    public List<Copy> getCopiesByBookId(Long bookId) {
+        try {
+            Optional<Book> checkBook = _bookRepository.findById(bookId);
+
+            // Check if there is already a book with the same id
+            if (!checkBook.isPresent())
+                throw new NotFoundException(Strings.BOOK.NOT_FOUND);
+
+            return _copyRepository.findByBookId(bookId);
+        } catch (Exception e) {
+            throw new RepositoryException(Strings.COPY.ERROR_FIND_ALL_LIST, e);
         }
     }
 }
