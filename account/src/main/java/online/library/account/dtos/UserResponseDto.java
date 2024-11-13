@@ -22,12 +22,12 @@ public class UserResponseDto {
     private String login;
     private UserRole role;
 
-    public void setDataNascimento(LocalDate birthDate) {
+    public void setBirthDate(LocalDate birthDate) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         this.birthDate = birthDate.format(formatter);
     }
 
-    public void setDataCadastro(LocalDate createdAt) {
+    public void setCreatedAt(LocalDate createdAt) {
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd/MM/yyyy");
         this.createdAt = createdAt.format(formatter);
     }
