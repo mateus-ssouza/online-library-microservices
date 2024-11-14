@@ -11,6 +11,8 @@ import online.library.loan.utils.Strings;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.List;
 import java.util.Optional;
 
@@ -93,6 +95,86 @@ public class LoanServiceImpl implements LoanService {
             throw e;
         } catch (Exception e) {
             throw new RepositoryException(Strings.LOAN.ERROR_DELETE, e);
+        }
+    }
+
+    @Override
+    public List<Loan> getAllByUserId(Long userId) {
+        try {
+            return _loanRepository.findAllByUserId(userId);
+        } catch (Exception e) {
+            throw new RepositoryException(Strings.LOAN.ERROR_FIND_ALL_BY_USER_ID, e);
+        }
+    }
+
+    @Override
+    public Optional<Loan> getByIdMyLoan(Long id, Long userId) {
+        try {
+            Optional<Loan> loan = _loanRepository.findByIdAndUserId(id, userId);
+
+            if (!loan.isPresent()) {
+                throw new NotFoundException(Strings.LOAN.NOT_FOUND_OR_NOT_ASSOCIATED);
+            }
+
+            return loan;
+        } catch (NotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RepositoryException(Strings.LOAN.ERROR_FIND_BY_ID_AND_USER_ID, e);
+        }
+    }
+
+    @Override
+    public void validate(Long id) {
+        try {
+            Optional<Loan> loan = getById(id);
+
+            if (loan.isPresent()) {
+                Loan loanValidate = loan.get();
+
+                if (loanValidate.getLoanDate().isBefore(LocalDate.now())) {
+                    long differenceInDays = ChronoUnit.DAYS.between(loanValidate.getLoanDate(),
+                            loanValidate.getReturnDate());
+                    loanValidate.setLoanDate(LocalDate.now());
+                    loanValidate.setReturnDate(LocalDate.now().plusDays(differenceInDays));
+                }
+
+                loanValidate.setStatus(Status.IN_PROGRESS);
+                _loanRepository.save(loanValidate);
+
+            } else {
+                throw new NotFoundException(Strings.LOAN.NOT_FOUND);
+            }
+        } catch (NotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RepositoryException(Strings.LOAN.ERROR_VALIDATE, e);
+        }
+    }
+
+    @Override
+    public void finalize(Long id) {
+        try {
+            Optional<Loan> loan = getById(id);
+
+            if (loan.isPresent()) {
+                Loan loanFinalize = loan.get();
+
+                long differenceInDays = ChronoUnit.DAYS.between(loanFinalize.getReturnDate(), LocalDate.now());
+                if (differenceInDays > 0) {
+                    loanFinalize.setFines(differenceInDays * 0.3);
+                }
+
+                loanFinalize.setStatus(Status.FINISHED);
+                _loanRepository.save(loanFinalize);
+
+            } else {
+                throw new NotFoundException(Strings.LOAN.NOT_FOUND);
+            }
+        } catch (NotFoundException e) {
+            throw e;
+        } catch (Exception e) {
+            throw new RepositoryException(Strings.LOAN.ERROR_FINALIZE, e);
         }
     }
 }

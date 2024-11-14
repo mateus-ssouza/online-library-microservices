@@ -93,4 +93,50 @@ public class LoansController {
             throw e;
         }
     }
+
+    @GetMapping("myloans")
+    public ResponseEntity<List<LoanResponseDto>> getAllMyLoans() {
+        try {
+            var loans = _loanService.getAllByUserId(1L);
+            var loansDto = loans.stream()
+                    .map(loan -> _loanMapper.map(loan))
+                    .collect(Collectors.toList());
+
+            return ResponseEntity.ok(loansDto);
+        } catch (Exception e) {
+            throw e;
+        }
+
+    }
+
+    @GetMapping("myloans/{id}")
+    public ResponseEntity<LoanResponseDto> getByIdMyLoans(@PathVariable Long id) {
+        try {
+            return _loanService.getByIdMyLoan(id, 1L)
+                    .map(loan -> ResponseEntity.ok(_loanMapper.map(loan)))
+                    .orElse(ResponseEntity.notFound().build());
+        } catch (Exception e) {
+            throw e;
+        }
+    }
+
+    @PutMapping("/{id}/validate")
+    public ResponseEntity<Void> validateLoan(@PathVariable Long id) {
+        try {
+            _loanService.validate(id);
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            throw e;
+        }
+    }
+
+    @PutMapping("/{id}/finalize")
+    public ResponseEntity<Void> finalizeLoan(@PathVariable Long id) {
+        try {
+            _loanService.finalize(id);
+            return ResponseEntity.noContent().build();
+        } catch (Exception e) {
+            throw e;
+        }
+    }
 }
