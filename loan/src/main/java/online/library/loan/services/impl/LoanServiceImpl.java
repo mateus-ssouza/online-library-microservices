@@ -52,7 +52,6 @@ public class LoanServiceImpl implements LoanService {
     public Loan create(Loan loan) {
         try {
             loan.setStatus(Status.REQUESTED);
-            loan.setUserId(1L);
             return _loanRepository.save(loan);
         } catch (ConflictException e) {
             throw e;

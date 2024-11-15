@@ -5,6 +5,7 @@ import online.library.loan.dtos.CreateLoanRequestDto;
 import online.library.loan.dtos.LoanResponseDto;
 import online.library.loan.dtos.UpdateLoanRequestDto;
 import online.library.loan.mappers.LoanMapper;
+import online.library.loan.security.JwtTokenUtil;
 import online.library.loan.services.LoanService;
 import online.library.loan.utils.ValidationErrors;
 
@@ -26,6 +27,9 @@ public class LoansController {
 
     @Autowired
     private LoanMapper _loanMapper;
+
+    @Autowired
+    private JwtTokenUtil _jwtUtil;
 
     @GetMapping
     public ResponseEntity<List<LoanResponseDto>> getAllLoans() {
@@ -54,11 +58,13 @@ public class LoansController {
     }
 
     @PostMapping
-    public ResponseEntity<LoanResponseDto> createLoan(@Valid @RequestBody CreateLoanRequestDto loanRequestDto,
-                                                      BindingResult validateFields) {
+    public ResponseEntity<LoanResponseDto> createLoan(@RequestHeader("Authorization") String token,
+            @Valid @RequestBody CreateLoanRequestDto loanRequestDto, BindingResult validateFields) {
         try {
             ValidationErrors.validateBindingResult(validateFields);
             var loan = _loanMapper.map(loanRequestDto);
+            Long userId = _jwtUtil.getClaimFromToken(token, "userId", Long.class);
+            loan.setUserId(userId);
             var savedLoan = _loanService.create(loan);
             var loanResponseDto = _loanMapper.map(savedLoan);
 
@@ -95,9 +101,11 @@ public class LoansController {
     }
 
     @GetMapping("myloans")
-    public ResponseEntity<List<LoanResponseDto>> getAllMyLoans() {
+    public ResponseEntity<List<LoanResponseDto>> getAllMyLoans(@RequestHeader("Authorization") String token) {
         try {
-            var loans = _loanService.getAllByUserId(1L);
+            Long userId = _jwtUtil.getClaimFromToken(token, "userId", Long.class);
+
+            var loans = _loanService.getAllByUserId(userId);
             var loansDto = loans.stream()
                     .map(loan -> _loanMapper.map(loan))
                     .collect(Collectors.toList());
@@ -110,9 +118,12 @@ public class LoansController {
     }
 
     @GetMapping("myloans/{id}")
-    public ResponseEntity<LoanResponseDto> getByIdMyLoans(@PathVariable Long id) {
+    public ResponseEntity<LoanResponseDto> getByIdMyLoans(@PathVariable Long id,
+            @RequestHeader("Authorization") String token) {
         try {
-            return _loanService.getByIdMyLoan(id, 1L)
+            Long userId = _jwtUtil.getClaimFromToken(token, "userId", Long.class);
+
+            return _loanService.getByIdMyLoan(id, userId)
                     .map(loan -> ResponseEntity.ok(_loanMapper.map(loan)))
                     .orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
