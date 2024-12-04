@@ -1,0 +1,3 @@
+CREATE DATABASE ol_account;
+CREATE DATABASE ol_book;
+CREATE DATABASE ol_loan;
