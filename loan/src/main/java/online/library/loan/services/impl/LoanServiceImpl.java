@@ -4,6 +4,7 @@ import online.library.loan.enums.Status;
 import online.library.loan.exceptions.ConflictException;
 import online.library.loan.exceptions.NotFoundException;
 import online.library.loan.exceptions.RepositoryException;
+import online.library.loan.exceptions.ValidationException;
 import online.library.loan.models.Loan;
 import online.library.loan.repositories.LoanRepository;
 import online.library.loan.services.LoanService;
@@ -13,7 +14,9 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDate;
 import java.time.temporal.ChronoUnit;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 @Service
@@ -51,10 +54,21 @@ public class LoanServiceImpl implements LoanService {
     @Override
     public Loan create(Loan loan) {
         try {
+            if (loan.getReturnDate() != null && loan.getReturnDate().isBefore(loan.getLoanDate())) {
+                Map<String, String> errors = new HashMap<>();
+                errors.put(
+                        "returnDate",
+                        String.format("The returnDate [%s] field cannot be earlier than the loanDate [%s] field.",
+                                loan.getReturnDate().toString(), loan.getLoanDate().toString()));
+                throw new ValidationException("Validation of the field(s) failed.", errors);
+            }
+
             loan.setStatus(Status.REQUESTED);
             return _loanRepository.save(loan);
         } catch (ConflictException e) {
             throw e;
+        } catch (ValidationException e) {
+            throw new ValidationException(e.getMessage(), e.getErrors());
         } catch (Exception e) {
             throw new RepositoryException(Strings.LOAN.ERROR_CREATE, e);
         }
@@ -71,11 +85,29 @@ public class LoanServiceImpl implements LoanService {
 
             // Updating loan fields
             Loan loanUpdated = loanModel.get();
+
+            if (loanUpdated.getStatus() != Status.REQUESTED) {
+                throw new ConflictException(Strings.LOAN.ERROR_UNSOLICITED_STATUS);
+            }
+
+            if (loan.getReturnDate() != null && loan.getReturnDate().isBefore(loanUpdated.getLoanDate())) {
+                Map<String, String> errors = new HashMap<>();
+                errors.put(
+                        "returnDate",
+                        String.format("The returnDate [%s] field cannot be earlier than the loanDate [%s] field.",
+                                loan.getReturnDate().toString(), loanUpdated.getLoanDate().toString()));
+                throw new ValidationException("Validation of the field(s) failed.", errors);
+            }
+
             loanUpdated.setReturnDate(loan.getReturnDate());
 
             return _loanRepository.save(loanUpdated);
         } catch (NotFoundException e) {
             throw e;
+        } catch (ConflictException e) {
+            throw e;
+        } catch (ValidationException e) {
+            throw new ValidationException(e.getMessage(), e.getErrors());
         } catch (Exception e) {
             throw new RepositoryException(Strings.LOAN.ERROR_UPDATE, e);
         }
@@ -131,6 +163,10 @@ public class LoanServiceImpl implements LoanService {
             if (loan.isPresent()) {
                 Loan loanValidate = loan.get();
 
+                if (loanValidate.getStatus() != Status.REQUESTED) {
+                    throw new ConflictException(Strings.LOAN.ERROR_UNSOLICITED_STATUS);
+                }
+
                 if (loanValidate.getLoanDate().isBefore(LocalDate.now())) {
                     long differenceInDays = ChronoUnit.DAYS.between(loanValidate.getLoanDate(),
                             loanValidate.getReturnDate());
@@ -146,6 +182,8 @@ public class LoanServiceImpl implements LoanService {
             }
         } catch (NotFoundException e) {
             throw e;
+        } catch (ConflictException e) {
+            throw e;
         } catch (Exception e) {
             throw new RepositoryException(Strings.LOAN.ERROR_VALIDATE, e);
         }
@@ -159,6 +197,10 @@ public class LoanServiceImpl implements LoanService {
             if (loan.isPresent()) {
                 Loan loanFinalize = loan.get();
 
+                if (loanFinalize.getStatus() != Status.IN_PROGRESS) {
+                    throw new ConflictException(Strings.LOAN.ERROR_IN_PROGRES_STATUS);
+                }
+
                 long differenceInDays = ChronoUnit.DAYS.between(loanFinalize.getReturnDate(), LocalDate.now());
                 if (differenceInDays > 0) {
                     loanFinalize.setFines(differenceInDays * 0.3);
@@ -171,6 +213,8 @@ public class LoanServiceImpl implements LoanService {
                 throw new NotFoundException(Strings.LOAN.NOT_FOUND);
             }
         } catch (NotFoundException e) {
+            throw e;
+        } catch (ConflictException e) {
             throw e;
         } catch (Exception e) {
             throw new RepositoryException(Strings.LOAN.ERROR_FINALIZE, e);

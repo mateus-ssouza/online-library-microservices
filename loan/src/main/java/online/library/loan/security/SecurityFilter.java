@@ -4,6 +4,7 @@ import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import online.library.loan.utils.Strings;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -45,8 +46,7 @@ public class SecurityFilter extends OncePerRequestFilter {
                 Authentication authentication = JwtTokenUtil.getAuthentication(username, role);
                 SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (Exception e) {
-                // Token inválido ou problema de parsing
-                throw new ServletException("Invalid JWT token.");
+                throw new ServletException(Strings.ERROR.INVALID_JWT);
             }
         }
 

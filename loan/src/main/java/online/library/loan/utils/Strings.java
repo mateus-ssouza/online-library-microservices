@@ -14,5 +14,11 @@ public abstract class Strings {
         public static final String ERROR_DELETE = "Error while trying to delete a loan.";
         public static final String ERROR_VALIDATE = "Error while trying to validate a loan.";
         public static final String ERROR_FINALIZE = "Error while trying to finalize a loan.";
+        public static final String ERROR_UNSOLICITED_STATUS = "Error loan status is not different from REQUESTED.";
+        public static final String ERROR_IN_PROGRES_STATUS = "Error loan status is not different from IN PROGRESS.";
+    }
+
+    public static final class ERROR {
+        public static final String INVALID_JWT = "Invalid JWT token.";
     }
 }
